@@ -1,69 +1,56 @@
 
 import java.util.*;
 
-class Room {
-    private String type;
-    private double price;
-    private List<String> amenities;
+class Reservation {
+    private String guestName;
+    private String roomType;
+    private int quantity;
 
-    public Room(String type, double price, List<String> amenities) {
-        this.type = type;
-        this.price = price;
-        this.amenities = amenities;
+    public Reservation(String guestName, String roomType, int quantity) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+        this.quantity = quantity;
     }
 
-    public String getType() {
-        return type;
+    public String getGuestName() {
+        return guestName;
     }
 
-    public double getPrice() {
-        return price;
+    public String getRoomType() {
+        return roomType;
     }
 
-    public List<String> getAmenities() {
-        return amenities;
-    }
-}
-
-class RoomInventory {
-    private HashMap<String, Integer> inventory;
-
-    public RoomInventory() {
-        inventory = new HashMap<>();
-    }
-
-    public void addRoomType(String roomType, int count) {
-        inventory.put(roomType, count);
-    }
-
-    public int getAvailability(String roomType) {
-        return inventory.getOrDefault(roomType, 0);
-    }
-
-    public Map<String, Integer> getAllAvailability() {
-        return new HashMap<>(inventory);
+    public int getQuantity() {
+        return quantity;
     }
 }
 
-class SearchService {
-    private RoomInventory inventory;
-    private Map<String, Room> roomCatalog;
+class BookingRequestQueue {
+    private Queue<Reservation> queue;
 
-    public SearchService(RoomInventory inventory, Map<String, Room> roomCatalog) {
-        this.inventory = inventory;
-        this.roomCatalog = roomCatalog;
+    public BookingRequestQueue() {
+        queue = new LinkedList<>();
     }
 
-    public void searchAvailableRooms() {
-        Map<String, Integer> availability = inventory.getAllAvailability();
+    public void addRequest(Reservation reservation) {
+        queue.offer(reservation);
+    }
 
-        for (Map.Entry<String, Integer> entry : availability.entrySet()) {
-            if (entry.getValue() > 0) {
-                Room room = roomCatalog.get(entry.getKey());
-                if (room != null) {
-                    System.out.println(room.getType() + " " + room.getPrice() + " " + room.getAmenities());
-                }
-            }
+    public Reservation getNextRequest() {
+        return queue.peek();
+    }
+
+    public Reservation processNextRequest() {
+        return queue.poll();
+    }
+
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
+    public void displayQueue() {
+        for (Reservation r : queue) {
+            System.out.println(r.getGuestName() + " " + r.getRoomType() + " " + r.getQuantity());
         }
     }
 }
@@ -71,20 +58,17 @@ class SearchService {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        RoomInventory inventory = new RoomInventory();
+        BookingRequestQueue requestQueue = new BookingRequestQueue();
 
-        inventory.addRoomType("Single", 10);
-        inventory.addRoomType("Double", 0);
-        inventory.addRoomType("Suite", 3);
+        requestQueue.addRequest(new Reservation("Amit", "Single", 1));
+        requestQueue.addRequest(new Reservation("Priya", "Double", 2));
+        requestQueue.addRequest(new Reservation("Rahul", "Suite", 1));
 
-        Map<String, Room> roomCatalog = new HashMap<>();
+        requestQueue.displayQueue();
 
-        roomCatalog.put("Single", new Room("Single", 1000, Arrays.asList("WiFi", "AC")));
-        roomCatalog.put("Double", new Room("Double", 2000, Arrays.asList("WiFi", "AC", "TV")));
-        roomCatalog.put("Suite", new Room("Suite", 5000, Arrays.asList("WiFi", "AC", "TV", "MiniBar")));
+        Reservation next = requestQueue.processNextRequest();
+        System.out.println(next.getGuestName() + " " + next.getRoomType());
 
-        SearchService searchService = new SearchService(inventory, roomCatalog);
-
-        searchService.searchAvailableRooms();
+        requestQueue.displayQueue();
     }
 }
