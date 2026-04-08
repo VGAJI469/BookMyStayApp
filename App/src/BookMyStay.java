@@ -1,45 +1,74 @@
-/**
- * ================================================================
- * MAIN CLASS - UseCase1HotelBookingApp
- * ================================================================
- *
- * Use Case 1: Application Entry & Welcome Message
- *
- * Description:
- * This class represents the entry point of the
- * Hotel Booking Management System.
- *
- * At this stage, the application:
- * - Starts execution from the main() method
- * - Displays a welcome message to the user
- * - Confirms that the system has started successfully
- *
- * No business logic, data structures, or user input
- * is implemented in this use case.
- *
- * The goal is to establish a clear and predictable
- * application startup point.
- *
- * @author Developer
- * @version 1.0
- */
-public class BookMyStayApp {
 
-    /**
-     * Application entry point.
-     *
-     * This method is the first method executed
-     * when the program is launched by the JVM.
-     *
-     * @param args Command-line arguments
-     */
+import java.util.*;
+
+class Reservation {
+    private String guestName;
+    private String roomType;
+    private int quantity;
+
+    public Reservation(String guestName, String roomType, int quantity) {
+        this.guestName = guestName;
+        this.roomType = roomType;
+        this.quantity = quantity;
+    }
+
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public String getRoomType() {
+        return roomType;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+}
+
+class BookingRequestQueue {
+    private Queue<Reservation> queue;
+
+    public BookingRequestQueue() {
+        queue = new LinkedList<>();
+    }
+
+    public void addRequest(Reservation reservation) {
+        queue.offer(reservation);
+    }
+
+    public Reservation getNextRequest() {
+        return queue.peek();
+    }
+
+    public Reservation processNextRequest() {
+        return queue.poll();
+    }
+
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
+    public void displayQueue() {
+        for (Reservation r : queue) {
+            System.out.println(r.getGuestName() + " " + r.getRoomType() + " " + r.getQuantity());
+        }
+    }
+}
+
+public class BookMyStayApp {
     public static void main(String[] args) {
 
-        System.out.println("=======================================");
-        System.out.println("      Welcome to Book My Stay App");
-        System.out.println("      Hotel Booking System v1.0");
-        System.out.println("=======================================");
+        BookingRequestQueue requestQueue = new BookingRequestQueue();
 
-        System.out.println("System started successfully.");
+        requestQueue.addRequest(new Reservation("Amit", "Single", 1));
+        requestQueue.addRequest(new Reservation("Priya", "Double", 2));
+        requestQueue.addRequest(new Reservation("Rahul", "Suite", 1));
+
+        requestQueue.displayQueue();
+
+        Reservation next = requestQueue.processNextRequest();
+        System.out.println(next.getGuestName() + " " + next.getRoomType());
+
+        requestQueue.displayQueue();
     }
 }
