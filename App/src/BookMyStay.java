@@ -1,34 +1,63 @@
 import java.util.HashMap;
 import java.util.Map;
 
-public class BookMyStayApp {
+class RoomInventory {
 
+    private HashMap<String, Integer> inventory;
+
+    public RoomInventory() {
+        inventory = new HashMap<>();
+    }
+
+    public void addRoomType(String roomType, int count) {
+        inventory.put(roomType, count);
+    }
+
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    public Map<String, Integer> getAllAvailability() {
+        return new HashMap<>(inventory);
+    }
+
+    public void increaseAvailability(String roomType, int count) {
+        int current = inventory.getOrDefault(roomType, 0);
+        inventory.put(roomType, current + count);
+    }
+
+    public boolean decreaseAvailability(String roomType, int count) {
+        int current = inventory.getOrDefault(roomType, 0);
+        if (current >= count) {
+            inventory.put(roomType, current - count);
+            return true;
+        }
+        return false;
+    }
+
+    public void displayInventory() {
+        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+            System.out.println(entry.getKey() + " " + entry.getValue());
+        }
+    }
+}
+
+public class BookMyStayApp {
     public static void main(String[] args) {
 
-        // Welcome Message (UC1)
-        System.out.println("=======================================");
-        System.out.println("        WELCOME TO BOOK MY STAY        ");
-        System.out.println("=======================================");
-        System.out.println("Find and book the best rooms easily.");
-        System.out.println("Your comfortable stay starts here!");
-        System.out.println("=======================================");
+        RoomInventory inventory = new RoomInventory();
 
-        // UC2: Room Types and Static Availability
-        Map<String, Integer> roomInventory = new HashMap<>();
+        inventory.addRoomType("Single", 10);
+        inventory.addRoomType("Double", 5);
+        inventory.addRoomType("Suite", 2);
 
-        roomInventory.put("Single Room", 10);
-        roomInventory.put("Double Room", 8);
-        roomInventory.put("Deluxe Room", 5);
-        roomInventory.put("Suite", 2);
+        inventory.displayInventory();
 
-        System.out.println("\nAvailable Room Types:");
-        System.out.println("---------------------------");
+        inventory.decreaseAvailability("Single", 2);
+        inventory.increaseAvailability("Double", 1);
 
-        for (Map.Entry<String, Integer> room : roomInventory.entrySet()) {
-            System.out.println(room.getKey() + " : " + room.getValue() + " rooms available");
-        }
+        System.out.println(inventory.getAvailability("Single"));
 
-        System.out.println("---------------------------");
-        System.out.println("Please select a room type to continue booking.");
+        inventory.displayInventory();
     }
 }
