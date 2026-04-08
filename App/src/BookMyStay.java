@@ -1,5 +1,5 @@
-
 import java.util.*;
+
 class Reservation {
     private String id;
     private String guestName;
@@ -12,12 +12,15 @@ class Reservation {
         this.roomType = roomType;
         this.quantity = quantity;
     }
+
     public String getId() {
         return id;
     }
+
     public String getGuestName() {
         return guestName;
     }
+
     public String getRoomType() {
         return roomType;
     }
@@ -121,6 +124,7 @@ class BookingService {
         }
     }
 }
+
 public class BookMyStayApp {
     public static void main(String[] args) {
 
