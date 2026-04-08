@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.concurrent.*;
 
 class Reservation {
     private String id;
@@ -13,138 +14,107 @@ class Reservation {
         this.quantity = quantity;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getGuestName() {
-        return guestName;
-    }
-
-    public String getRoomType() {
-        return roomType;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+    public int getQuantity() { return quantity; }
 }
 
 class RoomInventory {
-    private Map<String, Integer> inventory;
-
-    public RoomInventory() {
-        inventory = new HashMap<>();
-    }
+    private final Map<String, Integer> inventory = new ConcurrentHashMap<>();
 
     public void addRoomType(String type, int count) {
         inventory.put(type, count);
     }
 
-    public int getAvailability(String type) {
-        return inventory.getOrDefault(type, 0);
-    }
+    public synchronized boolean bookRooms(String type, int count) {
+        int available = inventory.getOrDefault(type, 0);
 
-    public void decrease(String type, int count) {
-        inventory.put(type, getAvailability(type) - count);
+        if (available >= count) {
+            inventory.put(type, available - count);
+            return true;
+        }
+        return false;
     }
 
     public void display() {
-        for (Map.Entry<String, Integer> e : inventory.entrySet()) {
-            System.out.println(e.getKey() + " " + e.getValue());
-        }
-    }
-}
-
-class BookingRequestQueue {
-    private Queue<Reservation> queue;
-
-    public BookingRequestQueue() {
-        queue = new LinkedList<>();
-    }
-
-    public void add(Reservation r) {
-        queue.offer(r);
-    }
-
-    public Reservation poll() {
-        return queue.poll();
-    }
-
-    public boolean isEmpty() {
-        return queue.isEmpty();
+        inventory.forEach((k, v) -> System.out.println(k + " " + v));
     }
 }
 
 class BookingService {
     private RoomInventory inventory;
-    private Set<String> allocatedRoomIds;
-    private Map<String, Set<String>> roomAllocations;
-    private int counter;
+    private Set<String> allocatedRoomIds = ConcurrentHashMap.newKeySet();
+    private Map<String, Set<String>> roomAllocations = new ConcurrentHashMap<>();
+    private AtomicInteger counter = new AtomicInteger(1);
 
     public BookingService(RoomInventory inventory) {
         this.inventory = inventory;
-        this.allocatedRoomIds = new HashSet<>();
-        this.roomAllocations = new HashMap<>();
-        this.counter = 1;
     }
 
     private String generateRoomId(String roomType) {
         String id;
         do {
-            id = roomType.substring(0, 1).toUpperCase() + counter++;
+            id = roomType.substring(0, 1).toUpperCase() + counter.getAndIncrement();
         } while (allocatedRoomIds.contains(id));
+
         allocatedRoomIds.add(id);
         return id;
     }
 
-    public void processQueue(BookingRequestQueue queue) {
-        while (!queue.isEmpty()) {
-            Reservation r = queue.poll();
-            int available = inventory.getAvailability(r.getRoomType());
+    public void processReservation(Reservation r) {
+        boolean success = inventory.bookRooms(r.getRoomType(), r.getQuantity());
 
-            if (available >= r.getQuantity()) {
-                for (int i = 0; i < r.getQuantity(); i++) {
-                    String roomId = generateRoomId(r.getRoomType());
-                    roomAllocations
-                            .computeIfAbsent(r.getRoomType(), k -> new HashSet<>())
-                            .add(roomId);
-                    System.out.println(r.getGuestName() + " " + roomId);
-                }
-                inventory.decrease(r.getRoomType(), r.getQuantity());
-            } else {
-                System.out.println("Failed " + r.getGuestName());
+        if (success) {
+            for (int i = 0; i < r.getQuantity(); i++) {
+                String roomId = generateRoomId(r.getRoomType());
+
+                roomAllocations
+                        .computeIfAbsent(r.getRoomType(), k -> ConcurrentHashMap.newKeySet())
+                        .add(roomId);
+
+                System.out.println(Thread.currentThread().getName() +
+                        " -> " + r.getGuestName() + " booked " + roomId);
             }
+        } else {
+            System.out.println(Thread.currentThread().getName() +
+                    " -> Failed " + r.getGuestName());
         }
     }
 
     public void displayAllocations() {
-        for (Map.Entry<String, Set<String>> e : roomAllocations.entrySet()) {
-            System.out.println(e.getKey() + " " + e.getValue());
-        }
+        roomAllocations.forEach((k, v) -> System.out.println(k + " " + v));
     }
 }
 
 public class BookMyStayApp {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         RoomInventory inventory = new RoomInventory();
         inventory.addRoomType("Single", 2);
         inventory.addRoomType("Double", 1);
 
-        BookingRequestQueue queue = new BookingRequestQueue();
-
-        queue.add(new Reservation("R1", "Amit", "Single", 1));
-        queue.add(new Reservation("R2", "Priya", "Single", 1));
-        queue.add(new Reservation("R3", "Rahul", "Single", 1));
-        queue.add(new Reservation("R4", "Neha", "Double", 1));
+        List<Reservation> requests = Arrays.asList(
+                new Reservation("R1", "Amit", "Single", 1),
+                new Reservation("R2", "Priya", "Single", 1),
+                new Reservation("R3", "Rahul", "Single", 1),
+                new Reservation("R4", "Neha", "Double", 1)
+        );
 
         BookingService bookingService = new BookingService(inventory);
 
-        bookingService.processQueue(queue);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
+        for (Reservation r : requests) {
+            executor.submit(() -> bookingService.processReservation(r));
+        }
+
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
+
+        System.out.println("\nFinal Inventory:");
         inventory.display();
 
+        System.out.println("\nAllocations:");
         bookingService.displayAllocations();
     }
 }
